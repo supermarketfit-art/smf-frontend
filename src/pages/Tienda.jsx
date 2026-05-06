@@ -9,6 +9,7 @@ export default function Tienda() {
   const [tienda, setTienda] = useState(null)
   const [carrito, setCarrito] = useState([])
   const [loading, setLoading] = useState(true)
+  const [pidiendo, setPidiendo] = useState(false)
 
   useEffect(() => {
     cargarTienda()
@@ -43,7 +44,39 @@ export default function Tienda() {
     setCarrito(carrito.filter(c => c.productoId !== productoId))
   }
 
+  const handlePedir = async () => {
+    if (carrito.length === 0) return
+    setPidiendo(true)
+    try {
+      // 1. Crear pedido
+      const { data: pedidoData } = await api.post('/pedidos', {
+        tiendaId: id,
+        tipoDelivery: 'RED_SMF',
+        direccionEntrega: 'Dirección del usuario',
+        items: carrito.map(item => ({
+          productoId: item.productoId,
+          cantidad: item.cantidad
+        }))
+      })
+
+      const pedidoId = pedidoData.pedido.id
+      toast.success('Pedido creado. Redirigiendo al pago...')
+
+      // 2. Iniciar pago con Wompi
+      const { data: pagoData } = await api.post(`/pagos/iniciar/${pedidoId}`)
+
+      // 3. Redirigir a Wompi
+      window.location.href = pagoData.urlPago
+
+    } catch (error) {
+      toast.error(error.response?.data?.mensaje || 'Error al crear el pedido')
+    } finally {
+      setPidiendo(false)
+    }
+  }
+
   const total = carrito.reduce((sum, item) => sum + (item.precioVenta * item.cantidad), 0)
+  const totalConDomicilio = total + (tienda?.costodomicilio || 0)
 
   const categorias = tienda?.inventario
     ? [...new Set(tienda.inventario.map(i => i.producto.categoria))]
@@ -56,7 +89,7 @@ export default function Tienda() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+    <div style={{ minHeight: '100vh', background: '#f5f5f5', paddingBottom: '100px' }}>
 
       {/* Header */}
       <div style={{
@@ -92,7 +125,6 @@ export default function Tienda() {
 
       <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto' }}>
 
-        {/* Productos por categoría */}
         {categorias.map(categoria => (
           <div key={categoria} style={{ marginBottom: '24px' }}>
             <h3 style={{ color: '#2D7A3A', fontWeight: '700', marginBottom: '12px' }}>
@@ -124,19 +156,12 @@ export default function Tienda() {
                       </p>
                       {enCarrito ? (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ color: '#2D7A3A', fontWeight: '700' }}>
-                            x{enCarrito.cantidad}
-                          </span>
+                          <span style={{ color: '#2D7A3A', fontWeight: '700' }}>x{enCarrito.cantidad}</span>
                           <button
                             onClick={() => quitarDelCarrito(item.productoId)}
                             style={{
-                              background: '#ff4444',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '4px 10px',
-                              cursor: 'pointer',
-                              fontSize: '12px'
+                              background: '#ff4444', color: 'white', border: 'none',
+                              borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px'
                             }}
                           >
                             Quitar
@@ -150,15 +175,9 @@ export default function Tienda() {
                             precioVenta: item.precioVenta
                           })}
                           style={{
-                            width: '100%',
-                            background: '#2D7A3A',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '8px',
-                            cursor: 'pointer',
-                            fontSize: '13px',
-                            fontWeight: '600'
+                            width: '100%', background: '#2D7A3A', color: 'white',
+                            border: 'none', borderRadius: '8px', padding: '8px',
+                            cursor: 'pointer', fontSize: '13px', fontWeight: '600'
                           }}
                         >
                           + Agregar
@@ -170,38 +189,43 @@ export default function Tienda() {
             </div>
           </div>
         ))}
-
-        {/* Carrito flotante */}
-        {carrito.length > 0 && (
-          <div style={{
-            position: 'fixed',
-            bottom: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: '#2D7A3A',
-            color: 'white',
-            padding: '16px 24px',
-            borderRadius: '50px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            cursor: 'pointer',
-            minWidth: '280px',
-            justifyContent: 'space-between'
-          }}>
-            <span style={{ fontSize: '14px' }}>
-              🛒 {carrito.length} productos
-            </span>
-            <span style={{ fontWeight: '800', fontSize: '16px' }}>
-              ${total.toLocaleString('es-CO')}
-            </span>
-            <span style={{ fontSize: '14px', fontWeight: '600' }}>
-              Pedir →
-            </span>
-          </div>
-        )}
       </div>
+
+      {/* Carrito flotante */}
+      {carrito.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: pidiendo ? '#999' : '#2D7A3A',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '50px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          cursor: pidiendo ? 'not-allowed' : 'pointer',
+          minWidth: '300px',
+          justifyContent: 'space-between'
+        }}
+          onClick={!pidiendo ? handlePedir : undefined}
+        >
+          <span style={{ fontSize: '14px' }}>🛒 {carrito.length} productos</span>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontWeight: '800', fontSize: '16px' }}>
+              ${totalConDomicilio.toLocaleString('es-CO')}
+            </div>
+            <div style={{ fontSize: '11px', opacity: 0.8 }}>
+              incl. domicilio ${tienda?.costodomicilio?.toLocaleString('es-CO')}
+            </div>
+          </div>
+          <span style={{ fontSize: '14px', fontWeight: '600' }}>
+            {pidiendo ? 'Procesando...' : 'Pagar →'}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
