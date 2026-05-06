@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api'
+  baseURL: 'https://smf-backend-production.up.railway.app/api'
 })
 
 api.interceptors.request.use((config) => {
