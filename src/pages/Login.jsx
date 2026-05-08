@@ -17,7 +17,14 @@ export default function Login() {
       const { data } = await api.post('/auth/login', form)
       setAuth(data.token, data.user)
       toast.success(data.mensaje)
-      navigate('/dashboard')
+      const rol = data.user.rol
+if (rol === 'FRUVER_OWNER') {
+  navigate('/fruver')
+} else if (rol === 'ADMIN') {
+  navigate('/dashboard')
+} else {
+  navigate('/dashboard')
+}
     } catch (error) {
       toast.error(error.response?.data?.mensaje || 'Error al iniciar sesión')
     } finally {
