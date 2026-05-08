@@ -62,11 +62,9 @@ export default function Tienda() {
       const pedidoId = pedidoData.pedido.id
       toast.success('Pedido creado. Redirigiendo al pago...')
 
-      // 2. Iniciar pago con Wompi
-      const { data: pagoData } = await api.post(`/pagos/iniciar/${pedidoId}`)
-
-      // 3. Redirigir a Wompi
-      window.location.href = pagoData.urlPago
+      // Pedido confirmado - ir a mis pedidos
+toast.success('¡Pedido confirmado!')
+navigate('/dashboard')
 
     } catch (error) {
       toast.error(error.response?.data?.mensaje || 'Error al crear el pedido')
