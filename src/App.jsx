@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Registro from './pages/Registro'
 import Dashboard from './pages/Dashboard'
 import Tienda from './pages/Tienda'
+import PanelFruver from './pages/PanelFruver'
 import { useAuthStore } from './store/authStore'
 
 function ProtectedRoute({ children }) {
@@ -24,6 +25,9 @@ export default function App() {
         } />
         <Route path="/tienda/:id" element={
           <ProtectedRoute><Tienda /></ProtectedRoute>
+        } />
+        <Route path="/fruver" element={
+          <ProtectedRoute><PanelFruver /></ProtectedRoute>
         } />
       </Routes>
     </BrowserRouter>
