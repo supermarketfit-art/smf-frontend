@@ -21,7 +21,7 @@ export default function Login() {
 if (rol === 'FRUVER_OWNER') {
   navigate('/fruver')
 } else if (rol === 'ADMIN') {
-  navigate('/dashboard')
+  navigate('/admin')
 } else {
   navigate('/dashboard')
 }
